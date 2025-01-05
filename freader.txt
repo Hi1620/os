@@ -1,0 +1,58 @@
+#include <semaphore.h>
+#include <stdio.h>
+#include <pthread.h>
+
+sem_t readerLock, writerLock;
+int readerCount = 0;
+
+void *reader(void *param) {
+    sem_wait(&readerLock);
+    readerCount++;
+    if (readerCount == 1)
+        sem_wait(&writerLock);
+    sem_post(&readerLock);
+    printf("\nReader %d is inside", readerCount);
+    sem_wait(&readerLock);
+    readerCount--;
+    if (readerCount == 0)
+        sem_post(&writerLock); 
+    sem_post(&readerLock);
+    printf("\nReader %d is leaving", readerCount + 1);
+    return NULL;
+}
+
+void *writer(void *param) {
+    printf("\nWriter is trying to enter");
+    sem_wait(&writerLock); 
+    printf("\nWriter has entered");
+    printf("\nWriter is leaving");
+    sem_post(&writerLock);
+    return NULL;
+}
+
+int main() {
+    int nReaders, nWriters;
+    printf("Enter number of readers: ");
+    scanf("%d", &nReaders);
+    printf("Enter number of writers: ");
+    scanf("%d", &nWriters);
+    pthread_t readers[nReaders], writers[nWriters];
+    sem_init(&readerLock, 0, 1);
+    sem_init(&writerLock, 0, 1);
+
+    for (int i = 0; i < nReaders; i++)
+        pthread_create(&readers[i], NULL, reader, NULL);
+
+    for (int i = 0; i < nWriters; i++)
+        pthread_create(&writers[i], NULL, writer, NULL);
+
+    for (int i = 0; i < nReaders; i++)
+        pthread_join(readers[i], NULL);
+
+    for (int i = 0; i < nWriters; i++)
+        pthread_join(writers[i], NULL);
+
+    sem_destroy(&readerLock);
+    sem_destroy(&writerLock);
+    return 0;
+}
