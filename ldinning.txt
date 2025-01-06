@@ -1,0 +1,42 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <unistd.h> 
+#define NUM_PHILOSOPHERS 5
+#define NUM_CHOPSTICKS 5
+
+pthread_t philosopher[NUM_PHILOSOPHERS];
+pthread_mutex_t chopstick[NUM_CHOPSTICKS];
+
+void* dine(void* arg) {
+    int n = *(int*)arg; 
+    printf("\nPhilosopher %d is thinking", n);
+    pthread_mutex_lock(&chopstick[n]);
+    pthread_mutex_lock(&chopstick[(n + 1) % NUM_CHOPSTICKS]);
+    printf("\nPhilosopher %d is eating", n);
+    usleep(3000000); 
+    pthread_mutex_unlock(&chopstick[n]);
+    pthread_mutex_unlock(&chopstick[(n + 1) % NUM_CHOPSTICKS]);
+    printf("\nPhilosopher %d finished eating", n);
+    free(arg);
+    return NULL;
+}
+
+int main() {
+    int i;
+    for (i = 0; i < NUM_CHOPSTICKS; i++) {
+        pthread_mutex_init(&chopstick[i], NULL);
+    }
+    for (i = 0; i < NUM_PHILOSOPHERS; i++) {
+        int* philosopher_id = malloc(sizeof(int));
+        *philosopher_id = i;
+        pthread_create(&philosopher[i], NULL, dine, philosopher_id);
+    }
+    for (i = 0; i < NUM_PHILOSOPHERS; i++) {
+        pthread_join(philosopher[i], NULL);
+    }
+    for (i = 0; i < NUM_CHOPSTICKS; i++) {
+        pthread_mutex_destroy(&chopstick[i]);
+    }
+    return 0;
+}
